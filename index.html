@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Realtime PSI Readings - Data.gov.sg</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 20px;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    h1 {
+      color: #2c3e50;
+    }
+
+    #meta-info {
+      margin-bottom: 15px;
+      font-size: 0.95em;
+      color: #555;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    th {
+      background-color: #007bff;
+      color: #ffffff;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover {
+      background-color: #f1f3f5;
+    }
+
+    td.reading-name {
+      font-weight: bold;
+      color: #2b2d42;
+    }
+
+    #loading {
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    #error {
+      color: #d9534f;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Singapore Realtime PSI Readings</h1>
+  <div id="meta-info">
+    <p id="loading">Fetching realtime data...</p>
+    <p id="timestamp"></p>
+    <p id="error"></p>
+  </div>
+
+  <div class="table-container">
+    <table id="psi-table" style="display: none;">
+      <thead>
+        <tr>
+          <th>Reading Metric</th>
+          <th>National</th>
+          <th>Central</th>
+          <th>North</th>
+          <th>South</th>
+          <th>East</th>
+          <th>West</th>
+        </tr>
+      </thead>
+      <tbody id="psi-tbody">
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Data.gov.sg PSI V1 API Endpoint
+    const API_URL = 'https://api.data.gov.sg/v1/environment/psi';
+
+    async function fetchPsiData() {
+      const loadingEl = document.getElementById('loading');
+      const timestampEl = document.getElementById('timestamp');
+      const errorEl = document.getElementById('error');
+      const tableEl = document.getElementById('psi-table');
+      const tbodyEl = document.getElementById('psi-tbody');
+
+      try {
+        const response = await fetch(API_URL);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Extract metadata and readings from the response payload
+        const item = data.items[0];
+        const updateTimestamp = new Date(item.update_timestamp).toLocaleString();
+        const readings = item.readings;
+
+        // Display updated timestamp
+        timestampEl.textContent = `Last Updated: ${updateTimestamp}`;
+        loadingEl.style.display = 'none';
+
+        // Populate table rows dynamically for all 12 metrics
+        tbodyEl.innerHTML = '';
+        Object.keys(readings).forEach(metric => {
+          const rowValues = readings[metric];
+          const tr = document.createElement('tr');
+
+          tr.innerHTML = `
+            <td class="reading-name">${metric}</td>
+            <td>${rowValues.national ?? 'N/A'}</td>
+            <td>${rowValues.central ?? 'N/A'}</td>
+            <td>${rowValues.north ?? 'N/A'}</td>
+            <td>${rowValues.south ?? 'N/A'}</td>
+            <td>${rowValues.east ?? 'N/A'}</td>
+            <td>${rowValues.west ?? 'N/A'}</td>
+          `;
+
+          tbodyEl.appendChild(tr);
+        });
+
+        tableEl.style.display = 'table';
+
+      } catch (error) {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = `Failed to load PSI data: ${error.message}`;
+        console.error('Error fetching PSI data:', error);
+      }
+    }
+
+    // Initialize fetch on page load
+    fetchPsiData();
+  </script>
+
+</body>
+</html>
