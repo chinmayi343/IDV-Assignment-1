@@ -101,7 +101,7 @@
         const tbody = document.getElementById('psi-tbody');
         tbody.innerHTML = '';
 
-        // Render all 12 metric rows
+        // Render all 12 metric rows across 5 regional columns
         Object.keys(readings).forEach(metric => {
           const regionData = readings[metric];
           const tr = document.createElement('tr');
@@ -128,7 +128,7 @@
       }
     }
 
-    // Helper function to turn "psi_twenty_four_hourly" into "PSI Twenty Four Hourly"
+    // Helper to format metric key strings (e.g. "psi_twenty_four_hourly" -> "PSI Twenty Four Hourly")
     function formatMetricName(key) {
       return key
         .split('_')
