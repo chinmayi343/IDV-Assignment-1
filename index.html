@@ -1,149 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Realtime Singapore PSI Readings</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      margin: 20px;
-      background-color: #f8f9fa;
-      color: #333;
-    }
-    h1 {
-      color: #1a252f;
-      margin-bottom: 5px;
-    }
-    .timestamp {
-      font-size: 0.9em;
-      color: #6c757d;
-      margin-bottom: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #ffffff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #e9ecef;
-    }
-    th {
-      background-color: #2c3e50;
-      color: #ffffff;
-      font-weight: 600;
-      text-transform: capitalize;
-    }
-    tr:hover {
-      background-color: #f1f3f5;
-    }
-    .metric-name {
-      font-weight: 600;
-      color: #2c3e50;
-    }
-    .error {
-      color: #d9534f;
-      padding: 10px;
-      background: #fdf7f7;
-      border: 1px solid #d9534f;
-      border-radius: 4px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singapore PSI Readings</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #status {
+            text-align: center;
+            margin: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #eeeeee;
+        }
+    </style>
 </head>
+
 <body>
 
-  <h1>Singapore PSI Realtime Readings</h1>
-  <div id="timestamp" class="timestamp">Loading data...</div>
+    <h1>Singapore PSI Readings</h1>
 
-  <table id="psi-table">
-    <thead>
-      <tr>
-        <th>Metric Reading</th>
-        <th>Central</th>
-        <th>West</th>
-        <th>East</th>
-        <th>North</th>
-        <th>South</th>
-      </tr>
-    </thead>
-    <tbody id="psi-tbody">
-      <tr>
-        <td colspan="6">Fetching PSI readings...</td>
-      </tr>
-    </tbody>
-  </table>
+    <p id="status">Loading data...</p>
 
-  <script>
-    const API_URL = 'https://api-open.data.gov.sg/v1/environment/psi';
+    <table>
+        <thead>
+            <tr>
+                <th>Reading</th>
+                <th>Value</th>
+            </tr>
+        </thead>
 
-    async function fetchPSIData() {
-      try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-          throw new Error(HTTP error! status: ${response.status});
+        <tbody id="psiTable">
+        </tbody>
+    </table>
+
+    <script>
+        const API_URL =
+            "https://api-open.data.gov.sg/v2/real-time/api/psi";
+
+        async function getPSIData() {
+            try {
+                const response = await fetch(API_URL);
+
+                if (!response.ok) {
+                    throw new Error("Unable to load data");
+                }
+
+                const data = await response.json();
+
+                console.log(data);
+
+                const readings = data.data.items[0].readings;
+
+                const table = document.getElementById("psiTable");
+
+                for (const [name, value] of Object.entries(readings)) {
+                    const row = document.createElement("tr");
+
+                    const readingCell = document.createElement("td");
+                    readingCell.textContent = name;
+
+                    const valueCell = document.createElement("td");
+                    valueCell.textContent = value;
+
+                    row.appendChild(readingCell);
+                    row.appendChild(valueCell);
+
+                    table.appendChild(row);
+                }
+
+                document.getElementById("status").textContent =
+                    "Realtime PSI data loaded successfully.";
+
+            } catch (error) {
+                console.error(error);
+
+                document.getElementById("status").textContent =
+                    "Unable to load data.";
+            }
         }
-        const data = await response.json();
 
-        // Extract timestamp and readings payload
-        const item = data.items[0];
-        const updateTime = new Date(item.update_timestamp).toLocaleString();
-        const readings = item.readings;
-
-        // Display updated timestamp
-        document.getElementById('timestamp').innerText = Last Updated: ${updateTime};
-
-        // Clear existing table rows
-        const tbody = document.getElementById('psi-tbody');
-        tbody.innerHTML = '';
-
-        // Render all 12 metric rows
-        Object.keys(readings).forEach(metric => {
-          const regionData = readings[metric];
-          const tr = document.createElement('tr');
-
-          tr.innerHTML = `
-            <td class="metric-name">${formatMetricName(metric)}</td>
-            <td>${regionData.central ?? 'N/A'}</td>
-            <td>${regionData.west ?? 'N/A'}</td>
-            <td>${regionData.east ?? 'N/A'}</td>
-            <td>${regionData.north ?? 'N/A'}</td>
-            <td>${regionData.south ?? 'N/A'}</td>
-          `;
-
-          tbody.appendChild(tr);
-        });
-
-      } catch (error) {
-        console.error('Error fetching PSI data:', error);
-        document.getElementById('psi-tbody').innerHTML = `
-          <tr>
-            <td colspan="6" class="error">Failed to load PSI data. ${error.message}</td>
-          </tr>
-        `;
-      }
-    }
-
-    // Helper function to turn "psi_twenty_four_hourly" into "PSI Twenty Four Hourly"
-    function formatMetricName(key) {
-      return key
-        .split('_')
-        .map(word => {
-          if (['psi', 'pm10', 'pm25'].includes(word.toLowerCase())) {
-            return word.toUpperCase();
-          }
-          return word.charAt(0).toUpperCase() + word.slice(1);
-        })
-        .join(' ');
-    }
-
-    // Run the fetch function when the page loads
-    fetchPSIData();
-  </script>
+        getPSIData();
+    </script>
 
 </body>
 </html>
