@@ -1,13 +1,179 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Pollutant Standards Index</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            color: #222;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-weight: normal;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
 <body>
 
-  <h1>Singapore PSI Realtime Readings</h1>
+    <h1>Pollutant Standards Index</h1>
+    <h2>Singapore</h2>
 
-  <p>
-    <a href="https://xumichaelxu.github.io/HASS-assignment1/" target="_blank">
-      View Assignment Reference
-    </a>
-  </p>
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Central</th>
+                <th>West</th>
+                <th>East</th>
+                <th>North</th>
+                <th>South</th>
+            </tr>
+        </thead>
 
-  <div id="timestamp" class="timestamp">
-    Loading data...
-  </div>
+        <tbody id="psi-table">
+            <tr>
+                <td colspan="6">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <button onclick="getPSIData()">Refresh</button>
+
+    <p id="status"></p>
+
+    <script>
+
+        const API_URL =
+            "https://api-open.data.gov.sg/v2/real-time/api/psi";
+
+        async function getPSIData() {
+
+            const table = document.getElementById("psi-table");
+            const status = document.getElementById("status");
+
+            table.innerHTML =
+                '<tr><td colspan="6">Loading...</td></tr>';
+
+            try {
+
+                const response = await fetch(API_URL);
+
+                if (!response.ok) {
+                    throw new Error("Unable to load data");
+                }
+
+                const data = await response.json();
+
+                const readings = data.data.items[0].readings;
+
+                table.innerHTML = "";
+
+                Object.keys(readings).forEach(function(metric) {
+
+                    const region = readings[metric];
+
+                    const row = document.createElement("tr");
+
+                    row.innerHTML = `
+                        <td>${formatMetricName(metric)}</td>
+                        <td>${region.central ?? "N/A"}</td>
+                        <td>${region.west ?? "N/A"}</td>
+                        <td>${region.east ?? "N/A"}</td>
+                        <td>${region.north ?? "N/A"}</td>
+                        <td>${region.south ?? "N/A"}</td>
+                    `;
+
+                    table.appendChild(row);
+
+                });
+
+                status.textContent =
+                    "Realtime PSI data loaded successfully.";
+
+            } catch (error) {
+
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            Unable to load data.
+                        </td>
+                    </tr>
+                `;
+
+                status.textContent = error.message;
+            }
+        }
+
+        function formatMetricName(metric) {
+
+            return metric
+                .split("_")
+                .map(function(word) {
+
+                    if (
+                        word === "psi" ||
+                        word === "o3" ||
+                        word === "co" ||
+                        word === "so2" ||
+                        word === "no2" ||
+                        word === "pm10" ||
+                        word === "pm25"
+                    ) {
+                        return word.toUpperCase();
+                    }
+
+                    return word.charAt(0).toUpperCase() +
+                           word.slice(1);
+
+                })
+                .join(" ");
+        }
+
+        getPSIData();
+
+    </script>
+
+</body>
+
+</html>
+```
