@@ -79,74 +79,56 @@
   </table>
 
   <script>
-    const ENDPOINTS = [
-      'https://api-open.data.gov.sg/v2/real-time/api/psi',
-      'https://api.data.gov.sg/v1/environment/psi'
-    ];
+    const API_URL = 'https://api-open.data.gov.sg/v1/environment/psi';
 
     async function fetchPSIData() {
-      let readings = null;
-      let updateTimestamp = null;
-      let fetchError = null;
-
-      for (const url of ENDPOINTS) {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) continue;
-
-          const json = await response.json();
-          
-          // Locate readings payload across V1 and V2 response structures
-          const payload = json.data || json;
-          const items = payload.items || (Array.isArray(payload) ? payload : [payload]);
-          
-          if (items && items.length > 0 && items[0].readings) {
-            readings = items[0].readings;
-            updateTimestamp = items[0].update_timestamp || items[0].timestamp;
-            break; // Data retrieved successfully
-          }
-        } catch (err) {
-          fetchError = err;
+      try {
+        const response = await fetch(API_URL);
+        if (!response.ok) {
+          throw new Error(HTTP error! status: ${response.status});
         }
-      }
+        const data = await response.json();
 
-      const tbody = document.getElementById('psi-tbody');
+        // Extract timestamp and readings payload
+        const item = data.items[0];
+        const updateTime = new Date(item.update_timestamp).toLocaleString();
+        const readings = item.readings;
 
-      if (!readings) {
-        console.error('PSI Fetch Error:', fetchError);
-        tbody.innerHTML = `
+        // Display updated timestamp
+        document.getElementById('timestamp').innerText = Last Updated: ${updateTime};
+
+        // Clear existing table rows
+        const tbody = document.getElementById('psi-tbody');
+        tbody.innerHTML = '';
+
+        // Render all 12 metric rows
+        Object.keys(readings).forEach(metric => {
+          const regionData = readings[metric];
+          const tr = document.createElement('tr');
+
+          tr.innerHTML = `
+            <td class="metric-name">${formatMetricName(metric)}</td>
+            <td>${regionData.central ?? 'N/A'}</td>
+            <td>${regionData.west ?? 'N/A'}</td>
+            <td>${regionData.east ?? 'N/A'}</td>
+            <td>${regionData.north ?? 'N/A'}</td>
+            <td>${regionData.south ?? 'N/A'}</td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+
+      } catch (error) {
+        console.error('Error fetching PSI data:', error);
+        document.getElementById('psi-tbody').innerHTML = `
           <tr>
-            <td colspan="6" class="error">Failed to load PSI data. Please check network connection.</td>
+            <td colspan="6" class="error">Failed to load PSI data. ${error.message}</td>
           </tr>
         `;
-        return;
       }
-
-      // Update Timestamp UI
-      const updateTime = updateTimestamp ? new Date(updateTimestamp).toLocaleString() : 'N/A';
-      document.getElementById('timestamp').innerText = Last Updated: ${updateTime};
-
-      // Clear Table Loader
-      tbody.innerHTML = '';
-
-      // Render all 12 metric rows
-      Object.keys(readings).forEach(metric => {
-        const regionData = readings[metric] || {};
-        const tr = document.createElement('tr');
-
-        tr.innerHTML = `
-          <td class="metric-name">${formatMetricName(metric)}</td>
-          <td>${regionData.central ?? 'N/A'}</td>
-          <td>${regionData.west ?? 'N/A'}</td>
-          <td>${regionData.east ?? 'N/A'}</td>
-          <td>${regionData.north ?? 'N/A'}</td>
-          <td>${regionData.south ?? 'N/A'}</td>
-        `;
-
-        tbody.appendChild(tr);
-      });
     }
 
+    // Helper function to turn "psi_twenty_four_hourly" into "PSI Twenty Four Hourly"
     function formatMetricName(key) {
       return key
         .split('_')
@@ -159,6 +141,7 @@
         .join(' ');
     }
 
+    // Run the fetch function when the page loads
     fetchPSIData();
   </script>
 
