@@ -79,7 +79,8 @@
   </table>
 
   <script>
-    const API_URL = 'https://api-open.data.gov.sg/v1/environment/psi';
+    // Updated v2 API URL
+    const API_URL = 'https://api-open.data.gov.sg/v2/real-time/api/psi';
 
     async function fetchPSIData() {
       try {
@@ -87,11 +88,14 @@
         if (!response.ok) {
           throw new Error(HTTP error! status: ${response.status});
         }
-        const data = await response.json();
+        const resData = await response.json();
 
-        // Extract timestamp and readings payload
-        const item = data.items[0];
-        const updateTime = new Date(item.update_timestamp).toLocaleString();
+        // Extract payload from response (supports both v1/v2 schema formats)
+        const payload = resData.data || resData;
+        const item = payload.items ? payload.items[0] : payload;
+        const updateTime = item.update_timestamp 
+          ? new Date(item.update_timestamp).toLocaleString() 
+          : 'N/A';
         const readings = item.readings;
 
         // Display updated timestamp
@@ -101,7 +105,7 @@
         const tbody = document.getElementById('psi-tbody');
         tbody.innerHTML = '';
 
-        // Render all 12 metric rows across 5 regional columns
+        // Render all 12 metric rows
         Object.keys(readings).forEach(metric => {
           const regionData = readings[metric];
           const tr = document.createElement('tr');
@@ -128,7 +132,6 @@
       }
     }
 
-    // Helper to format metric key strings (e.g. "psi_twenty_four_hourly" -> "PSI Twenty Four Hourly")
     function formatMetricName(key) {
       return key
         .split('_')
@@ -141,7 +144,6 @@
         .join(' ');
     }
 
-    // Initialize fetch on page load
     fetchPSIData();
   </script>
 
